@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>모직소 투표</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #ede0d0; --cream-dark: #e0cfbc; --ivory: #f5ece0;
+  --wine: #7a2535; --wine-dim: rgba(122,37,53,0.07);
+  --charcoal: #2a1f18; --brown: #6b4c3b; --gray: #8a7060;
+  --gray-light: #c4a896; --border: #d4b99a;
+  --male: #3a6285; --male-dim: rgba(58,98,133,0.1);
+  --female: #8b3a5a; --female-dim: rgba(139,58,90,0.1);
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { background:var(--ivory); color:var(--charcoal); font-family:'Noto Sans KR',sans-serif; min-height:100vh; }
+.screen { display:none; min-height:100vh; padding:24px 20px; }
+.screen.active { display:flex; flex-direction:column; }
+.top-line { position:fixed; top:0; left:0; right:0; height:1.5px; background:linear-gradient(90deg,transparent,var(--brown),transparent); opacity:0.4; z-index:100; }
+
+.btn { width:100%; padding:15px; border-radius:var(--radius); font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.2s; letter-spacing:1px; }
+.btn-primary { background:var(--wine); color:var(--ivory); border:none; }
+.btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-primary:not(:disabled):active { opacity:0.85; transform:scale(0.98); }
+.btn-secondary { background:transparent; border:1px solid var(--border); color:var(--gray); }
+.btn-outline-wine { background:transparent; border:1px solid var(--wine); color:var(--wine); }
+.btn-danger { background:transparent; border:1px solid rgba(122,37,53,0.3); color:var(--wine); font-size:13px; }
+.card { background:white; border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:14px; }
+.card-title { font-family:'Noto Serif KR',serif; font-size:13px; color:var(--wine); margin-bottom:16px; letter-spacing:2px; }
+.back-btn { display:flex; align-items:center; gap:6px; color:var(--gray); font-size:12px; cursor:pointer; margin-bottom:8px; background:none; border:none; padding:4px 0; font-family:'Noto Sans KR',sans-serif; }
+
+/* 로딩 */
+.loading-overlay { position:fixed; inset:0; background:rgba(245,236,224,0.95); display:flex; align-items:center; justify-content:center; z-index:999; flex-direction:column; gap:12px; }
+.loading-spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--wine); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* 홈 */
+#screen-home { align-items:center; justify-content:center; background:var(--ivory); gap:0; }
+.home-logo { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; color:var(--charcoal); letter-spacing:8px; }
+.home-divider { width:36px; height:1px; background:var(--brown); margin:14px auto 12px; opacity:0.5; }
+.home-insta { font-size:11px; color:var(--gray); letter-spacing:1px; margin-bottom:4px; }
+.home-tagline { font-family:'Noto Serif KR',serif; font-size:12px; color:var(--gray); font-weight:300; }
+.home-philosophy { text-align:center; padding:28px 16px 24px; max-width:320px; }
+.home-philosophy p { font-family:'Noto Serif KR',serif; font-size:13px; line-height:2.4; color:var(--brown); font-weight:300; }
+.closing { display:block; margin-top:20px; font-family:'Noto Serif KR',serif; font-size:13px; color:var(--gray); font-weight:300; font-style:italic; line-height:2; }
+.home-stats-block { width:100%; max-width:260px; border:1px solid var(--border); border-radius:var(--radius); padding:16px 0; margin:4px 0 24px; display:flex; }
+.stat-item { flex:1; text-align:center; border-right:1px solid var(--border); }
+.stat-item:last-child { border-right:none; }
+.stat-num-big { font-family:'Noto Serif KR',serif; font-size:20px; font-weight:700; color:var(--wine); line-height:1; }
+.stat-unit { font-size:12px; font-weight:400; }
+.stat-label-w { font-size:10px; color:var(--gray); margin-top:4px; letter-spacing:1px; }
+.home-btns { width:100%; max-width:320px; display:flex; flex-direction:column; gap:10px; padding-bottom:40px; }
+
+/* 성별 */
+#screen-gender { align-items:center; justify-content:center; gap:28px; }
+.gender-cards { display:flex; gap:14px; width:100%; max-width:300px; }
+.gender-card { flex:1; padding:28px 16px; border-radius:var(--radius); text-align:center; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:10px; border:1.5px solid var(--border); background:white; }
+.gender-card:active { transform:scale(0.96); }
+.gender-card .g-icon { font-size:32px; }
+.gender-card span { font-size:13px; color:var(--charcoal); letter-spacing:1px; }
+.gender-male:hover { border-color:var(--male); background:var(--male-dim); }
+.gender-female:hover { border-color:var(--female); background:var(--female-dim); }
+
+/* 번호 */
+#screen-number { gap:0; }
+.number-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+.number-btn { aspect-ratio:1; border:1.5px solid var(--border); border-radius:10px; background:white; color:var(--charcoal); font-size:17px; font-weight:400; font-family:'Noto Serif KR',serif; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+.number-btn.taken { opacity:0.25; cursor:not-allowed; background:#f0e8df; }
+.number-btn.mine { border-color:var(--wine); background:var(--wine-dim); color:var(--wine); }
+
+/* 투표 */
+#screen-vote { gap:0; }
+.vote-header { text-align:center; padding:16px 0 20px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.vote-my-info { display:inline-flex; align-items:center; gap:8px; background:white; border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:12px; color:var(--gray); margin-bottom:12px; }
+.vote-my-badge { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+.vote-my-badge.male { background:var(--male-dim); color:var(--male); border:1px solid var(--male); }
+.vote-my-badge.female { background:var(--female-dim); color:var(--female); border:1px solid var(--female); }
+.vote-instruction { font-family:'Noto Serif KR',serif; font-size:16px; color:var(--charcoal); margin-bottom:4px; }
+.vote-instruction-sub { font-size:11px; color:var(--gray); }
+.vote-selected-bar { display:flex; gap:8px; margin-bottom:20px; min-height:50px; align-items:center; }
+.vote-slot { flex:1; height:50px; border:1.5px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--gray-light); transition:all 0.2s; position:relative; }
+.vote-slot.filled { border-style:solid; font-family:'Noto Serif KR',serif; font-size:18px; font-weight:600; }
+.vote-slot.filled.male { background:var(--male-dim); border-color:var(--male); color:var(--male); }
+.vote-slot.filled.female { background:var(--female-dim); border-color:var(--female); color:var(--female); }
+.vote-slot-label { position:absolute; top:-8px; left:8px; font-size:9px; color:var(--gray); background:var(--ivory); padding:0 4px; }
+.vote-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:20px; }
+.vote-btn { aspect-ratio:1; border-radius:10px; border:1.5px solid var(--border); background:white; color:var(--charcoal); font-family:'Noto Serif KR',serif; font-size:16px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+.vote-btn:active { transform:scale(0.94); }
+.vote-btn.selected.male { background:var(--male-dim); border-color:var(--male); color:var(--male); }
+.vote-btn.selected.female { background:var(--female-dim); border-color:var(--female); color:var(--female); }
+
+/* 완료 */
+#screen-complete { align-items:center; justify-content:center; text-align:center; gap:0; background:var(--ivory); }
+.complete-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; max-width:320px; width:100%; }
+.complete-date { font-family:'Noto Serif KR',serif; font-size:13px; color:var(--gray); letter-spacing:1px; }
+.complete-countdown { font-family:'Noto Serif KR',serif; font-size:32px; font-weight:700; color:var(--wine); letter-spacing:2px; }
+.complete-countdown-label { font-size:11px; color:var(--gray); margin-top:-8px; }
+.complete-divider { width:40px; height:1px; background:var(--brown); opacity:0.3; }
+.complete-icon { font-size:36px; }
+.complete-title { font-family:'Noto Serif KR',serif; font-size:20px; color:var(--charcoal); letter-spacing:2px; }
+.complete-msg { font-family:'Noto Serif KR',serif; font-size:13px; color:var(--gray); line-height:2.2; font-weight:300; }
+.complete-votes-row { display:flex; gap:10px; justify-content:center; }
+.complete-badge { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR',serif; font-size:15px; font-weight:600; }
+.complete-notice { font-size:11px; color:var(--gray-light); text-align:center; line-height:1.8; }
+.complete-insta { display:flex; align-items:center; gap:8px; background:transparent; border:1px solid var(--border); border-radius:var(--radius); padding:12px 24px; color:var(--gray); font-size:13px; text-decoration:none; font-family:'Noto Sans KR',sans-serif; margin-top:4px; }
+
+/* 투표 마감 안내 */
+.vote-closed-banner { background:rgba(122,37,53,0.08); border:1px solid rgba(122,37,53,0.2); border-radius:var(--radius); padding:12px 16px; text-align:center; font-size:12px; color:var(--wine); margin-bottom:16px; font-family:'Noto Serif KR',serif; }
+
+/* 호스트 로그인 */
+#screen-host-login { align-items:center; justify-content:center; gap:20px; }
+.input-field { width:100%; max-width:300px; background:white; border:1px solid var(--border); border-radius:var(--radius); padding:14px; color:var(--charcoal); font-size:16px; font-family:'Noto Sans KR',sans-serif; outline:none; text-align:center; letter-spacing:4px; }
+.input-field:focus { border-color:var(--wine); }
+
+/* 호스트 대시보드 */
+#screen-host { gap:0; padding-bottom:40px; background:var(--cream); }
+.host-header { display:flex; align-items:center; justify-content:space-between; padding:20px 0 8px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.host-title { font-family:'Noto Serif KR',serif; font-size:16px; color:var(--charcoal); letter-spacing:2px; }
+.host-date-badge { font-size:11px; color:var(--wine); background:var(--wine-dim); border:1px solid rgba(122,37,53,0.2); border-radius:20px; padding:4px 10px; font-family:'Noto Sans KR',sans-serif; }
+.host-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+.stat-card { background:white; border:1px solid var(--border); border-radius:var(--radius); padding:14px 10px; text-align:center; }
+.stat-card .s-num { font-family:'Noto Serif KR',serif; font-size:26px; font-weight:700; color:var(--wine); line-height:1; margin-bottom:4px; }
+.stat-card .s-label { font-size:10px; color:var(--gray); letter-spacing:1px; }
+.setup-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--cream-dark); }
+.setup-label { font-size:13px; color:var(--charcoal); }
+.setup-value { font-family:'Noto Serif KR',serif; font-size:16px; color:var(--wine); font-weight:600; }
+.counter-row { display:flex; align-items:center; gap:14px; }
+.counter-btn { width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--charcoal); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.record-edit-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--cream-dark); }
+.record-input { width:80px; background:white; border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--wine); font-family:'Noto Serif KR',serif; font-size:16px; font-weight:600; text-align:center; outline:none; }
+.record-input:focus { border-color:var(--wine); }
+
+/* 투표 ON/OFF 토글 */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:white; border:1px solid var(--border); border-radius:var(--radius); margin-bottom:14px; }
+.toggle-label { font-size:14px; color:var(--charcoal); font-weight:500; }
+.toggle-switch { position:relative; width:52px; height:28px; }
+.toggle-switch input { display:none; }
+.toggle-slider { position:absolute; inset:0; background:#ccc; border-radius:28px; cursor:pointer; transition:0.3s; }
+.toggle-slider:before { content:''; position:absolute; width:20px; height:20px; left:4px; top:4px; background:white; border-radius:50%; transition:0.3s; }
+.toggle-switch input:checked + .toggle-slider { background:var(--wine); }
+.toggle-switch input:checked + .toggle-slider:before { transform:translateX(24px); }
+
+.tab-bar { display:flex; gap:8px; margin-bottom:16px; }
+.tab-btn { flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:white; color:var(--gray); font-size:12px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all 0.2s; }
+.tab-btn.active { background:var(--wine-dim); border-color:var(--wine); color:var(--wine); font-weight:500; }
+.match-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.match-item { background:white; border:1px solid rgba(45,106,74,0.3); border-radius:var(--radius); padding:14px; animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.match-badge { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR',serif; font-size:15px; font-weight:600; flex-shrink:0; }
+.match-badge.male { background:var(--male-dim); border:1.5px solid var(--male); color:var(--male); }
+.match-badge.female { background:var(--female-dim); border:1.5px solid var(--female); color:var(--female); }
+.votes-section { margin-bottom:20px; }
+.votes-title { font-size:11px; color:var(--gray); margin-bottom:10px; letter-spacing:2px; text-transform:uppercase; }
+.votes-grid { display:flex; flex-direction:column; gap:6px; }
+.vote-row { display:flex; align-items:center; gap:10px; background:white; border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.vote-row-badge { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR',serif; font-size:13px; font-weight:600; flex-shrink:0; }
+.vote-row-targets { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+.vote-target-badge { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif KR',serif; font-size:11px; font-weight:600; }
+.no-votes { font-size:11px; color:var(--gray-light); }
+.empty-state { text-align:center; padding:40px 20px; color:var(--gray); font-size:13px; }
+.empty-state .empty-icon { font-size:36px; margin-bottom:12px; opacity:0.4; }
+.reset-section { border-top:1px solid var(--border); padding-top:20px; margin-top:10px; display:flex; flex-direction:column; gap:10px; }
+
+/* 지난 기록 */
+#screen-history { gap:0; padding-bottom:40px; background:var(--cream); }
+.history-item { background:white; border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:8px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+.history-item:active { opacity:0.7; }
+.history-key { font-family:'Noto Serif KR',serif; font-size:14px; color:var(--charcoal); }
+.history-count { font-size:12px; color:var(--gray); }
+
+/* 토스트 */
+#copy-toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:rgba(42,31,24,0.92); color:#fff; padding:10px 20px; border-radius:20px;
+  font-size:12px; font-family:'Noto Sans KR',sans-serif; letter-spacing:0.5px;
+  opacity:0; transition:opacity 0.3s, transform 0.3s; pointer-events:none; z-index:9999; white-space:nowrap; }
+#copy-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* 수동 수정 표시 */
+.vote-row.manual-edited { background: rgba(255,200,50,0.12); border-left: 3px solid #f0a500; }
+.manual-badge { font-size:9px; color:#b07800; background:rgba(255,200,50,0.3); border-radius:3px; padding:1px 4px; margin-top:2px; white-space:nowrap; }
+
+/* 확인 모달 */
+#confirm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; align-items:center; justify-content:center; }
+#confirm-modal.show { display:flex; }
+.confirm-box { background:#fff; border-radius:16px; padding:28px 24px 20px; max-width:320px; width:90%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
+.confirm-title { font-family:'Noto Serif KR',serif; font-size:16px; color:var(--charcoal); margin-bottom:10px; }
+.confirm-msg { font-size:13px; color:var(--gray); line-height:1.6; margin-bottom:20px; }
+.confirm-btns { display:flex; gap:8px; }
+.confirm-btn-cancel { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:#f5f5f5; color:var(--gray); font-size:13px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-weight:600; }
+.confirm-btn-danger { flex:1; padding:12px; border-radius:10px; border:none; background:#e03131; color:#fff; font-size:13px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-weight:600; }
+
+/* 수정 팝업 */
+#edit-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; align-items:center; justify-content:center; }
+#edit-modal.show { display:flex; }
+.edit-box { background:#fff; border-radius:16px; padding:24px; max-width:340px; width:92%; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
+.edit-box-title { font-family:'Noto Serif KR',serif; font-size:15px; color:var(--charcoal); margin-bottom:16px; }
+.edit-vote-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.edit-vote-btn { width:44px; height:44px; border-radius:50%; border:1.5px solid var(--border); background:#fafafa; font-size:14px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all .15s; }
+.edit-vote-btn.selected { border-color:var(--wine); background:var(--wine); color:#fff; }
+.edit-no-vote { width:100%; padding:10px; border-radius:8px; border:1px dashed var(--gray); background:#fafafa; font-size:12px; color:var(--gray); cursor:pointer; font-family:'Noto Sans KR',sans-serif; margin-bottom:12px; }
+.edit-no-vote.selected { border-color:var(--wine); background:rgba(122,37,53,0.07); color:var(--wine); }
+
+/* 지난 기록 상세 */
+#screen-history-detail { gap:0; padding-bottom:40px; background:var(--cream); }
+.detail-section-title { font-family:'Noto Serif KR',serif; font-size:13px; color:var(--wine); letter-spacing:2px; margin:18px 0 10px; }
+.detail-match-item { background:white; border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; }
+.detail-match-label { font-family:'Noto Serif KR',serif; font-size:13px; color:var(--charcoal); margin-bottom:8px; }
+.detail-vote-row { background:white; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:6px; display:flex; align-items:center; gap:10px; }
+.detail-empty { text-align:center; padding:32px 0; color:var(--gray); font-size:13px; }
+
+/* 득표 뱃지 */
+.vote-score { font-size:9px; color:white; background:var(--wine); border-radius:10px; padding:1px 5px; margin-top:2px; white-space:nowrap; font-weight:600; }
+.vote-score.zero { background:var(--gray); }
+/* 정렬 토글 */
+.sort-toggle { display:flex; gap:6px; margin-bottom:10px; }
+.sort-btn { flex:1; padding:7px; border-radius:8px; border:1px solid var(--border); background:#fafafa; color:var(--gray); font-size:11px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; letter-spacing:.5px; }
+.sort-btn.active { background:var(--wine); color:white; border-color:var(--wine); }
+</style>
+</head>
+<body>
+<div class="top-line"></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div style="font-family:'Noto Serif KR',serif;font-size:13px;color:var(--gray);">연결 중...</div>
+</div>
+
+<!-- 홈 -->
+<div id="screen-home" class="screen">
+  <div style="text-align:center;padding:44px 0 16px;">
+    <div class="home-logo">모직소</div>
+    <div class="home-divider"></div>
+    <div class="home-insta">@morsus_partyroom</div>
+    <div class="home-tagline">신혼부부가 운영하는 진심어린 로테이션 소개팅</div>
+  </div>
+  <div class="home-philosophy">
+    <p>
+      모직소를 시작하게 된 이유는 단순합니다.<br><br>
+      저처럼 소중한 인연을 만나<br>
+      행복해질 수 있는 기회를<br>
+      더 많은 분들께 드리고 싶었거든요.<br><br>
+      여자친구를 만나 느꼈던 그 설렘이,<br>
+      여러분에게도 찾아오길 바라는 마음이<br>
+      모직소의 시작점입니다.
+      <span class="closing">오늘 이 자리에서 당신의 소중한 인연이<br>시작되기를 진심으로 바랍니다.</span>
+    </p>
+  </div>
+  <div class="home-stats-block">
+    <div class="stat-item">
+      <div class="stat-num-big" id="home-kisu">190<span class="stat-unit">기</span></div>
+      <div class="stat-label-w">누적 기수</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num-big" id="home-couple">5<span class="stat-unit">쌍</span></div>
+      <div class="stat-label-w">결혼 성사</div>
+    </div>
+  </div>
+  <div class="home-btns">
+    <button class="btn btn-primary" onclick="startVote()">호감 투표하기</button>
+    <button class="btn btn-outline-wine" onclick="goTo('screen-host-login')">호스트 전용</button>
+  </div>
+</div>
+
+<!-- 성별 선택 -->
+<div id="screen-gender" class="screen">
+  <button class="back-btn" onclick="goTo('screen-home')">← 뒤로</button>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;">
+    <div style="text-align:center;">
+      <div style="font-family:'Noto Serif KR',serif;font-size:13px;color:var(--gray);letter-spacing:1px;margin-bottom:8px;">STEP 1</div>
+      <div style="font-family:'Noto Serif KR',serif;font-size:20px;color:var(--charcoal);letter-spacing:1px;">성별을 선택해주세요</div>
+      <div style="width:30px;height:1px;background:var(--brown);margin:12px auto;opacity:0.4;"></div>
+    </div>
+    <div class="gender-cards">
+      <div class="gender-card gender-male" onclick="selectGender('male')">
+        <div class="g-icon">👨</div><span>남성</span>
+      </div>
+      <div class="gender-card gender-female" onclick="selectGender('female')">
+        <div class="g-icon">👩</div><span>여성</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 번호 선택 -->
+<div id="screen-number" class="screen">
+  <button class="back-btn" onclick="goTo('screen-gender')">← 뒤로</button>
+  <div style="text-align:center;padding:20px 0 24px;">
+    <div style="font-family:'Noto Serif KR',serif;font-size:13px;color:var(--gray);letter-spacing:1px;margin-bottom:8px;">STEP 2</div>
+    <div style="font-family:'Noto Serif KR',serif;font-size:20px;color:var(--charcoal);letter-spacing:1px;margin-bottom:8px;">내 번호를 선택하세요</div>
+    <div style="width:30px;height:1px;background:var(--brown);margin:10px auto;opacity:0.4;"></div>
+    <div style="font-size:11px;color:var(--gray);">오늘 행사에서 받은 번호를 선택해주세요</div>
+  </div>
+  <div id="number-grid" class="number-grid"></div>
+</div>
+
+<!-- 투표 -->
+<div id="screen-vote" class="screen">
+  <div class="vote-header">
+    <div style="font-family:'Noto Serif KR',serif;font-size:13px;color:var(--gray);letter-spacing:1px;margin-bottom:8px;">STEP 3</div>
+    <div style="font-family:'Noto Serif KR',serif;font-size:20px;color:var(--charcoal);letter-spacing:4px;margin-bottom:8px;">모직소</div>
+    <div style="width:30px;height:1px;background:var(--brown);margin:0 auto 12px;opacity:0.4;"></div>
+    <div id="vote-my-info" class="vote-my-info"></div>
+    <div class="vote-instruction">마음에 드는 분을 선택해주세요</div>
+    <div class="vote-instruction-sub">최대 3명까지 선택할 수 있어요</div>
+  </div>
+  <div id="vote-selected-bar" class="vote-selected-bar">
+    <div class="vote-slot" id="slot-0"><span class="vote-slot-label">1순위</span>—</div>
+    <div class="vote-slot" id="slot-1"><span class="vote-slot-label">2순위</span>—</div>
+    <div class="vote-slot" id="slot-2"><span class="vote-slot-label">3순위</span>—</div>
+  </div>
+  <div id="vote-grid" class="vote-grid"></div>
+  <button class="btn btn-primary" id="vote-submit-btn" onclick="submitVote()" disabled style="margin-top:auto;">투표 완료</button>
+  <button class="btn btn-secondary" onclick="submitNoVote()" style="margin-top:10px;font-size:13px;color:var(--gray);">오늘은 인연이 없었어요</button>
+</div>
+
+<!-- 완료 -->
+<div id="screen-complete" class="screen">
+  <div class="complete-wrap">
+    <div class="complete-date" id="complete-date-text"></div>
+    <div>
+      <div class="complete-countdown" id="complete-countdown">--:--:--</div>
+      <div class="complete-countdown-label" id="complete-countdown-label">매칭 결과까지</div>
+    </div>
+    <div class="complete-divider"></div>
+    <div class="complete-icon">🕊️</div>
+    <div class="complete-title">소중한 투표가 완료되었습니다!</div>
+    <div class="complete-msg">정밀한 매칭을 위해<br>약 10~20분 정도 소요될 수 있습니다.<br><br>결과는 잠시 후 오픈 채팅방을 통해<br>공지해 드릴 예정이니 단톡방을 확인해 주세요!</div>
+    <div id="complete-votes-row" class="complete-votes-row"></div>
+    <div class="complete-notice">중복 투표는 불가능하며,<br>수정이 필요한 경우 호스트에게 직접 말씀해 주세요.</div>
+    <a href="https://www.instagram.com/morsus_partyroom" target="_blank" class="complete-insta">
+      📸 모직소 인스타그램 구경하기
+    </a>
+  </div>
+</div>
+
+<!-- 호스트 로그인 -->
+<div id="screen-host-login" class="screen">
+  <button class="back-btn" onclick="goTo('screen-home')">← 뒤로</button>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+    <div style="text-align:center;">
+      <div style="font-family:'Noto Serif KR',serif;font-size:20px;color:var(--charcoal);letter-spacing:2px;margin-bottom:6px;">호스트 전용</div>
+      <div style="font-size:12px;color:var(--gray);">비밀번호를 입력하세요</div>
+    </div>
+    <input type="password" class="input-field" id="host-pw-input" placeholder="비밀번호" maxlength="10"
+      onkeydown="if(event.key==='Enter')checkHostPw()">
+    <div style="max-width:300px;width:100%;display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" onclick="checkHostPw()">입장</button>
+      <button class="btn btn-secondary" onclick="goTo('screen-home')">취소</button>
+    </div>
+    <div id="pw-error" style="font-size:12px;color:var(--wine);display:none;">비밀번호가 틀렸어요</div>
+  </div>
+</div>
+
+<!-- 호스트 대시보드 -->
+<div id="screen-host" class="screen">
+  <div class="host-header">
+    <div>
+      <div class="host-title">호스트 대시보드</div>
+      <div class="host-date-badge" id="host-session-label" style="display:inline-block;margin-top:4px;">로딩 중...</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-secondary" style="width:auto;padding:7px 10px;font-size:11px;" onclick="refreshDashboard()">🔄</button>
+      <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:12px;" onclick="goTo('screen-home')">나가기</button>
+    </div>
+  </div>
+
+  <!-- 회차 선택 (토/일만 표시) -->
+  <div class="card" id="part-selector-card" style="display:none;">
+    <div class="card-title">회차 선택</div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button id="part-btn-1" class="btn btn-primary" style="flex:1;font-size:13px;padding:12px;" onclick="setHostPart('1부')">1부 (16:00)</button>
+      <button id="part-btn-2" class="btn btn-secondary" style="flex:1;font-size:13px;padding:12px;" onclick="setHostPart('2부')">2부 (19:00)</button>
+    </div>
+    <div style="font-size:11px;color:var(--gray);margin-top:8px;text-align:center;" id="part-auto-hint"></div>
+  </div>
+
+  <!-- 투표 ON/OFF -->
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">투표 활성화</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:2px;" id="vote-status-text">로딩 중...</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="vote-toggle" onchange="toggleVoteActive()">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <!-- 기수 설정 -->
+  <div class="card">
+    <div class="card-title">기수 설정</div>
+    <div class="setup-row">
+      <span class="setup-label">남성 인원</span>
+      <div class="counter-row">
+        <button class="counter-btn" onclick="adjustCount('male',-1)">−</button>
+        <span class="setup-value" id="male-count-display">13</span>
+        <button class="counter-btn" onclick="adjustCount('male',1)">+</button>
+      </div>
+    </div>
+    <div class="setup-row" style="border-bottom:none;">
+      <span class="setup-label">여성 인원</span>
+      <div class="counter-row">
+        <button class="counter-btn" onclick="adjustCount('female',-1)">−</button>
+        <span class="setup-value" id="female-count-display">13</span>
+        <button class="counter-btn" onclick="adjustCount('female',1)">+</button>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-primary" onclick="applySession()" style="font-size:13px;padding:12px;">설정 적용</button>
+    </div>
+  </div>
+
+
+  <!-- 명단 입력 -->
+  <div class="card">
+    <div class="card-title">명단 입력</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button id="roster-tab-male" class="btn btn-primary" style="flex:1;font-size:12px;padding:9px;" onclick="switchRosterTab('male')">남성</button>
+      <button id="roster-tab-female" class="btn btn-secondary" style="flex:1;font-size:12px;padding:9px;" onclick="switchRosterTab('female')">여성</button>
+    </div>
+    <textarea id="roster-input" placeholder="예시:&#10;1 김예희 010-1234-5678&#10;2 박지수 010-9876-5432&#10;&#10;번호 이름 전화번호 순으로 입력하세요." style="width:100%;height:130px;border:1px solid rgba(122,37,53,0.2);border-radius:10px;padding:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--charcoal);background:white;resize:none;box-sizing:border-box;outline:none;" oninput="previewRoster()"></textarea>
+    <div id="roster-preview" style="margin-top:8px;font-size:11px;color:var(--gray);min-height:16px;"></div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="saveRoster()" style="font-size:13px;padding:12px;">저장</button>
+    </div>
+  </div>
+
+  <!-- 실적 수정 -->
+  <div class="card">
+    <div class="card-title">누적 실적 수정</div>
+    <div class="record-edit-row">
+      <span style="font-size:13px;color:var(--charcoal);">누적 기수</span>
+      <input type="number" class="record-input" id="input-kisu" min="1" onchange="saveRecords()">
+    </div>
+    <div class="record-edit-row" style="border-bottom:none;">
+      <span style="font-size:13px;color:var(--charcoal);">결혼 성사</span>
+      <input type="number" class="record-input" id="input-couple" min="0" onchange="saveRecords()">
+    </div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="host-stats">
+    <div class="stat-card"><div class="s-num" id="stat-total">0</div><div class="s-label">총 투표</div></div>
+    <div class="stat-card"><div class="s-num" id="stat-male-done">0</div><div class="s-label">남성 완료</div></div>
+    <div class="stat-card"><div class="s-num" id="stat-female-done">0</div><div class="s-label">여성 완료</div></div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-match" onclick="switchTab('match')">💑 매칭 결과</button>
+    <button class="tab-btn" id="tab-votes" onclick="switchTab('votes')">📋 전체 투표</button>
+  </div>
+
+  <div id="tab-content-match">
+    <div id="match-list" class="match-list">
+      <div class="empty-state"><div class="empty-icon">💌</div>아직 투표 결과가 없어요</div>
+    </div>
+  </div>
+
+  <div id="tab-content-votes" style="display:none;">
+    <div class="sort-toggle">
+      <button class="sort-btn active" id="sort-btn-num" onclick="setVoteSort('num')">번호순</button>
+      <button class="sort-btn" id="sort-btn-score" onclick="setVoteSort('score')">득표순</button>
+    </div>
+    <div class="votes-section">
+      <div class="votes-title">남성 투표 현황</div>
+      <div id="votes-male" class="votes-grid"></div>
+    </div>
+    <div class="votes-section">
+      <div class="votes-title">여성 투표 현황</div>
+      <div id="votes-female" class="votes-grid"></div>
+    </div>
+  </div>
+
+  <div class="reset-section">
+    <button class="btn btn-secondary" onclick="goTo('screen-history')" style="font-size:13px;">📂 지난 기록 보기</button>
+    <button class="btn btn-danger" onclick="resetAll()">이번 기수 초기화</button>
+  </div>
+</div>
+
+<!-- 지난 기록 -->
+<div id="screen-history" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
+    <div style="font-family:'Noto Serif KR',serif;font-size:16px;color:var(--charcoal);letter-spacing:2px;">지난 기록</div>
+    <button class="back-btn" onclick="goTo('screen-host')" style="margin:0;">← 뒤로</button>
+  </div>
+  <div id="history-list">
+    <div class="empty-state"><div class="empty-icon">📂</div>저장된 기록이 없어요</div>
+  </div>
+</div>
+
+
+<!-- 지난 기록 상세 -->
+<div id="screen-history-detail" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+    <div id="detail-title" style="font-family:'Noto Serif KR',serif;font-size:15px;color:var(--charcoal);letter-spacing:1px;"></div>
+    <button class="back-btn" onclick="goTo('screen-history')" style="margin:0;">← 뒤로</button>
+  </div>
+  <div id="detail-summary" style="font-size:12px;color:var(--gray);padding:8px 0 4px;"></div>
+  <div id="detail-content"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBA0C3b4jHFaIKmRxAdTyfpapD2Z_aGj1U",
+  authDomain: "mojikso-vote.firebaseapp.com",
+  databaseURL: "https://mojikso-vote-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mojikso-vote",
+  storageBucket: "mojikso-vote.firebasestorage.app",
+  messagingSenderId: "370923887997",
+  appId: "1:370923887997:web:cd597f545d7250f448c014"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── KST 시간 유틸 ──
+function getKST() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst;
+}
+
+// 토/일 회차 선택 (기본값: 현재 시간 기준 자동)
+let hostPartOverride = null; // null이면 자동, '1부'/'2부'면 수동
+
+function getDefaultPart() {
+  const k = getKST();
+  return k.getUTCHours() < 16 ? '1부' : '2부'; // 16시(KST) 기준
+}
+
+function getActivePart() {
+  return hostPartOverride || getDefaultPart();
+}
+
+function isPartDay(dow) {
+  return dow === 0 || dow === 6; // 일요일(0) or 토요일(6)
+}
+
+function getSessionKey() {
+  const k = getKST();
+  const month = k.getUTCMonth() + 1;
+  const day = k.getUTCDate();
+  const dow = ['일','월','화','수','목','금','토'][k.getUTCDay()];
+  if (isPartDay(k.getUTCDay())) {
+    return `${month}월${day}일(${dow})-${getActivePart()}`;
+  }
+  return `${month}월${day}일(${dow})`;
+}
+
+function getCountdownTarget() {
+  const k = getKST();
+  const dow = k.getUTCDay();
+  const target = new Date(k);
+  if (dow === 3) { // 수요일 22:30 KST = UTC 13:30
+    target.setUTCHours(13, 30, 0, 0);
+  } else if (dow === 5) { // 금요일 23:30 KST = UTC 14:30
+    target.setUTCHours(14, 30, 0, 0);
+  } else if (isPartDay(dow)) {
+    if (getActivePart() === '1부') { // 16:00 KST = UTC 07:00
+      target.setUTCHours(7, 0, 0, 0);
+    } else { // 19:00 KST = UTC 10:00
+      target.setUTCHours(10, 0, 0, 0);
+    }
+  }
+  return target;
+}
+
+function formatDisplayDate() {
+  const k = getKST();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  return `${k.getUTCFullYear()}. ${String(k.getUTCMonth()+1).padStart(2,'0')}. ${String(k.getUTCDate()).padStart(2,'0')}. ${days[k.getUTCDay()]}`;
+}
+
+// ── 전역 상태 ──
+const HOST_PW = '0731';
+// SESSION_KEY는 getSessionKey()로 동적 호출 (회차 변경 시 반영)
+let state = { gender: null, myNumber: null, maleCount: 13, femaleCount: 13, kisu: 190, couple: 5, sessionKey: null };
+let countdownInterval = null;
+let dbListeners = [];
+
+function dbRef(path) { return ref(db, path); }
+
+// ── 초기화 ──
+function resetVoteState() {
+  // 투표 진행 중 임시 선택값 완전 초기화
+  state.gender = null;
+  state.myNumber = null;
+  state.sessionKey = null;
+  selectedVotes = [];
+}
+
+async function init() {
+  // 앱 진입 시 항상 임시 선택값 초기화 (링크 재진입 대응)
+  resetVoteState();
+  try {
+    // config 로드
+    const cfgSnap = await get(dbRef('config'));
+    if (cfgSnap.exists()) {
+      const d = cfgSnap.val();
+      state.maleCount = d.maleCount || 13;
+      state.femaleCount = d.femaleCount || 13;
+      state.kisu = d.kisu || 190;
+      state.couple = d.couple || 5;
+    }
+    updateHomeStats();
+    document.getElementById('loading-overlay').style.display = 'none';
+    goTo('screen-home');
+  } catch(e) {
+    console.error('Init error:', e);
+    document.getElementById('loading-overlay').style.display = 'none';
+    goTo('screen-home');
+  }
+}
+
+function updateHomeStats() {
+  document.getElementById('home-kisu').innerHTML = `${state.kisu}<span class="stat-unit">기</span>`;
+  document.getElementById('home-couple').innerHTML = `${state.couple}<span class="stat-unit">쌍</span>`;
+}
+
+// ── 화면 전환 ──
+window.goTo = async function(id) {
+  // 투표 도중 이탈 시 state 초기화
+  const voteScreens = ['screen-gender','screen-number','screen-vote'];
+  const currentActive = document.querySelector('.screen.active');
+  const currentId = currentActive ? currentActive.id : '';
+  if (voteScreens.includes(currentId) && !voteScreens.includes(id) && id !== 'screen-complete') {
+    state.gender = null; state.myNumber = null;
+    selectedVotes = [];
+  }
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  // 지난 기록 화면 진입 시 목록 로드
+  if (id === 'screen-history') loadHistory();
+}
+
+// ── 투표 시작 (투표 활성 여부 확인) ──
+window.startVote = async function() {
+  // 투표 시작 전 임시 선택값 초기화 (뒤로가기 후 재진입 대응)
+  resetVoteState();
+  state.sessionKey = getSessionKey();
+  // 이미 투표했는지 확인 (localStorage + Firebase 교차 — 초기화 대응)
+  const localKey = `voted_${state.sessionKey}`;
+  if (localStorage.getItem(localKey)) {
+    const voteSnap = await get(dbRef(`sessions/${state.sessionKey}/votes`));
+    const votes = voteSnap.exists() ? voteSnap.val() : {};
+    const gKey = localStorage.getItem(`${localKey}_gender`);
+    const nKey = localStorage.getItem(`${localKey}_number`);
+    const myExists = Object.values(votes).some(v =>
+      v.gender === gKey && String(v.number) === nKey
+    );
+    if (myExists) {
+      alert('이미 투표를 완료하셨습니다.\n수정이 필요하면 호스트에게 말씀해 주세요.');
+      return;
+    } else {
+      // Firebase에 데이터 없음 = 초기화됨 → localStorage 클리어 후 재투표 허용
+      localStorage.removeItem(localKey);
+      localStorage.removeItem(`${localKey}_gender`);
+      localStorage.removeItem(`${localKey}_number`);
+    }
+  }
+  // 투표 활성 여부 확인
+  const snap = await get(dbRef(`sessions/${state.sessionKey}/voteActive`));
+  const active = snap.exists() ? snap.val() : true;
+  if (!active) {
+    alert('현재 투표가 마감되었습니다.\n호스트에게 문의해 주세요.');
+    return;
+  }
+  goTo('screen-gender');
+}
+
+window.selectGender = function(g) { state.gender = g; buildNumberGrid(); goTo('screen-number'); }
+
+async function buildNumberGrid() {
+  const grid = document.getElementById('number-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--gray);font-size:13px;">번호 불러오는 중...</div>';
+  const count = state.gender === 'male' ? state.maleCount : state.femaleCount;
+
+  // ★ taken 아닌 votes 기준으로 비활성화 — 실제 제출 완료된 번호만
+  const votesSnap = await get(dbRef(`sessions/${state.sessionKey}/votes`));
+  const votedNums = new Set();
+  if (votesSnap.exists()) {
+    Object.values(votesSnap.val()).forEach(v => {
+      if (v.gender === state.gender) votedNums.add(Number(v.number));
+    });
+  }
+
+  grid.innerHTML = '';
+  for (let i = 1; i <= count; i++) {
+    const btn = document.createElement('button');
+    const isDone = votedNums.has(i);
+    btn.className = 'number-btn' + (isDone ? ' taken' : '');
+    btn.textContent = i;
+    if (!isDone) btn.onclick = () => selectNumber(i);
+    grid.appendChild(btn);
+  }
+
+  // 실시간: 투표 완료 시 즉시 비활성화
+  onValue(dbRef(`sessions/${state.sessionKey}/votes`), (snap) => {
+    const done = new Set();
+    if (snap.exists()) {
+      Object.values(snap.val()).forEach(v => {
+        if (v.gender === state.gender) done.add(Number(v.number));
+      });
+    }
+    document.querySelectorAll('.number-btn').forEach((btn, idx) => {
+      const num = idx + 1;
+      if (done.has(num) && num !== state.myNumber) {
+        btn.classList.add('taken');
+        btn.onclick = null;
+      }
+    });
+  });
+}
+
+async function selectNumber(num) {
+  state.myNumber = num;
+  // taken 선점 저장 제거 — votes 완료 기준으로만 비활성화하므로 불필요
+  buildVoteScreen();
+  goTo('screen-vote');
+}
+
+let selectedVotes = [];
+
+function buildVoteScreen() {
+  selectedVotes = []; updateSlots();
+  const infoEl = document.getElementById('vote-my-info');
+  const gc = state.gender;
+  infoEl.innerHTML = `<div class="vote-my-badge ${gc}">${state.myNumber}</div>${gc === 'male' ? '남성' : '여성'} ${state.myNumber}번`;
+  const opp = gc === 'male' ? 'female' : 'male';
+  const count = opp === 'male' ? state.maleCount : state.femaleCount;
+  const grid = document.getElementById('vote-grid'); grid.innerHTML = '';
+  for (let i = 1; i <= count; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'vote-btn'; btn.textContent = i;
+    btn.onclick = () => toggleVote(i, btn, opp); grid.appendChild(btn);
+  }
+  document.getElementById('vote-submit-btn').disabled = true;
+}
+
+function toggleVote(num, btn, gender) {
+  const idx = selectedVotes.indexOf(num);
+  if (idx > -1) { selectedVotes.splice(idx, 1); btn.classList.remove('selected','male','female'); }
+  else { if (selectedVotes.length >= 3) return; selectedVotes.push(num); btn.classList.add('selected', gender); }
+  updateSlots();
+  document.getElementById('vote-submit-btn').disabled = selectedVotes.length === 0;
+}
+
+function updateSlots() {
+  const opp = state.gender === 'male' ? 'female' : 'male';
+  for (let i = 0; i < 3; i++) {
+    const slot = document.getElementById(`slot-${i}`);
+    if (selectedVotes[i] !== undefined) {
+      slot.className = `vote-slot filled ${opp}`;
+      slot.innerHTML = `<span class="vote-slot-label">${i+1}순위</span>${selectedVotes[i]}`;
+    } else {
+      slot.className = 'vote-slot';
+      slot.innerHTML = `<span class="vote-slot-label">${i+1}순위</span>—`;
+    }
+  }
+}
+
+window.submitVote = async function() {
+  if (selectedVotes.length === 0) return;
+  try {
+    await set(dbRef(`sessions/${state.sessionKey}/votes/${state.gender}_${state.myNumber}`), {
+      votes: selectedVotes, gender: state.gender, number: state.myNumber, ts: Date.now()
+    });
+    // DB 저장 성공 확인 후 localStorage 기록
+    localStorage.setItem(`voted_${state.sessionKey}`, '1');
+    localStorage.setItem(`voted_${state.sessionKey}_gender`, state.gender);
+    localStorage.setItem(`voted_${state.sessionKey}_number`, String(state.myNumber));
+    showComplete(selectedVotes);
+  } catch(e) {
+    alert('저장에 실패했어요. 네트워크 확인 후 다시 시도해 주세요.');
+  }
+}
+
+window.submitNoVote = async function() {
+  if (!confirm('오늘 투표를 건너뛸까요?')) return;
+  try {
+    await set(dbRef(`sessions/${state.sessionKey}/votes/${state.gender}_${state.myNumber}`), {
+      votes: [], gender: state.gender, number: state.myNumber, noVote: true, ts: Date.now()
+    });
+    localStorage.setItem(`voted_${state.sessionKey}`, '1');
+    localStorage.setItem(`voted_${state.sessionKey}_gender`, state.gender);
+    localStorage.setItem(`voted_${state.sessionKey}_number`, String(state.myNumber));
+    showComplete([]);
+  } catch(e) {
+    alert('저장에 실패했어요. 네트워크 확인 후 다시 시도해 주세요.');
+  }
+}
+
+function showComplete(votes) {
+  document.getElementById('complete-date-text').textContent = formatDisplayDate();
+  // 완료 투표 배지
+  const opp = state.gender === 'male' ? 'female' : 'male';
+  document.getElementById('complete-votes-row').innerHTML = votes.map(n =>
+    `<div class="complete-badge" style="background:var(--${opp}-dim);border:1.5px solid var(--${opp});color:var(--${opp})">${n}</div>`
+  ).join('');
+  // 카운트다운 시작
+  startCountdown();
+  goTo('screen-complete');
+}
+
+function startCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  function tick() {
+    const now = new Date();
+    const target = getCountdownTarget();
+    let diff = target - now;
+    if (diff < 0) diff = 0;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('complete-countdown').textContent =
+      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  countdownInterval = setInterval(tick, 1000);
+}
+
+// ── 호스트 ──
+window.checkHostPw = function() {
+  const pw = document.getElementById('host-pw-input').value;
+  if (pw === HOST_PW) {
+    document.getElementById('pw-error').style.display = 'none';
+    document.getElementById('host-pw-input').value = '';
+    refreshDashboard();
+    goTo('screen-host');
+  } else { document.getElementById('pw-error').style.display = 'block'; }
+}
+
+window.setHostPart = function(part) {
+  hostPartOverride = part;
+  updatePartSelectorUI();
+  // 세션 라벨 갱신
+  document.getElementById('host-session-label').textContent = getSessionKey();
+};
+
+function updatePartSelectorUI() {
+  const k = getKST();
+  const dow = k.getUTCDay();
+  const card = document.getElementById('part-selector-card');
+  if (isPartDay(dow)) {
+    card.style.display = 'block';
+    const activePart = getActivePart();
+    document.getElementById('part-btn-1').className = activePart === '1부'
+      ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('part-btn-1').style.cssText = 'flex:1;font-size:13px;padding:12px;';
+    document.getElementById('part-btn-2').className = activePart === '2부'
+      ? 'btn btn-primary' : 'btn btn-secondary';
+    document.getElementById('part-btn-2').style.cssText = 'flex:1;font-size:13px;padding:12px;';
+    const hint = hostPartOverride
+      ? `수동 선택: ${activePart}`
+      : `자동 감지: ${activePart} (시간 기준)`;
+    document.getElementById('part-auto-hint').textContent = hint;
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+window.refreshDashboard = async function() {
+  updatePartSelectorUI();
+  // 세션 라벨
+  document.getElementById('host-session-label').textContent = getSessionKey();
+  // 명단 탭 초기화 (남성 기본)
+  rosterTab = 'male';
+  switchRosterTab('male');
+  // config
+  const cfgSnap = await get(dbRef('config'));
+  if (cfgSnap.exists()) {
+    const d = cfgSnap.val();
+    state.maleCount = d.maleCount || 13;
+    state.femaleCount = d.femaleCount || 13;
+    state.kisu = d.kisu || 190;
+    state.couple = d.couple || 5;
+  }
+  document.getElementById('male-count-display').textContent = state.maleCount;
+  document.getElementById('female-count-display').textContent = state.femaleCount;
+  document.getElementById('input-kisu').value = state.kisu;
+  document.getElementById('input-couple').value = state.couple;
+  // 투표 활성 여부
+  const activeSnap = await get(dbRef(`sessions/${getSessionKey()}/voteActive`));
+  const active = activeSnap.exists() ? activeSnap.val() : true;
+  document.getElementById('vote-toggle').checked = active;
+  document.getElementById('vote-status-text').textContent = active ? '투표 진행 중' : '투표 마감됨';
+  // 실시간 투표 현황
+  onValue(dbRef(`sessions/${getSessionKey()}/votes`), (snap) => {
+    const votes = snap.exists() ? snap.val() : {};
+    updateDashboard(votes);
+  });
+}
+
+window.toggleVoteActive = async function() {
+  const active = document.getElementById('vote-toggle').checked;
+  await set(dbRef(`sessions/${getSessionKey()}/voteActive`), active);
+  document.getElementById('vote-status-text').textContent = active ? '투표 진행 중' : '투표 마감됨';
+}
+
+window.adjustCount = function(gender, delta) {
+  const next = Math.max(1, Math.min(20, state[`${gender}Count`] + delta));
+  state[`${gender}Count`] = next;
+  document.getElementById(`${gender}-count-display`).textContent = next;
+}
+
+window.applySession = async function() {
+  await update(dbRef('config'), { maleCount: state.maleCount, femaleCount: state.femaleCount });
+  alert(`설정 완료!\n남성 ${state.maleCount}명 / 여성 ${state.femaleCount}명`);
+  updateDashboard(null);
+}
+
+window.saveRecords = async function() {
+  const k = parseInt(document.getElementById('input-kisu').value) || state.kisu;
+  const c = parseInt(document.getElementById('input-couple').value) || state.couple;
+  state.kisu = k; state.couple = c;
+  await update(dbRef('config'), { kisu: k, couple: c });
+  updateHomeStats();
+}
+
+
+// ── 득표 계산 ──
+function calcScores(votes, gender, count) {
+  const opp = gender === 'male' ? 'female' : 'male';
+  const scores = {};
+  for (let i = 1; i <= count; i++) scores[i] = 0;
+  Object.values(votes).forEach(v => {
+    if (v.gender === opp && Array.isArray(v.votes)) {
+      v.votes.forEach(num => { if (scores[num] !== undefined) scores[num]++; });
+    }
+  });
+  return scores;
+}
+
+// ── 명단 관리 ──
+let rosterTab = 'male'; // 현재 선택된 탭
+
+window.switchRosterTab = function(gender) {
+  rosterTab = gender;
+  document.getElementById('roster-tab-male').className = gender === 'male' ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('roster-tab-male').style.cssText = 'flex:1;font-size:12px;padding:9px;';
+  document.getElementById('roster-tab-female').className = gender === 'female' ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('roster-tab-female').style.cssText = 'flex:1;font-size:12px;padding:9px;';
+  // 저장된 명단 불러와서 textarea에 표시
+  get(dbRef(`sessions/${getSessionKey()}/roster/${gender}`)).then(snap => {
+    const data = snap.exists() ? snap.val() : {};
+    const text = Object.entries(data)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([num, val]) => {
+        const name = typeof val === 'object' ? val.name : val;
+        const phone = typeof val === 'object' ? val.phone : '';
+        return phone ? `${num} ${name} ${phone}` : `${num} ${name}`;
+      })
+      .join('\n');
+    document.getElementById('roster-input').value = text;
+    previewRoster();
+  });
+};
+
+function parseRosterLine(line) {
+  try {
+    if (!line || !line.trim()) return { num: NaN, name: '', phone: '' };
+    // 전화번호 추출 — 010으로 시작하는 숫자 덩어리 (하이픈/공백 무관)
+    const phoneMatch = line.match(/01[0-9][-\s]?\d{3,4}[-\s]?\d{4}/);
+    let phone = '';
+    if (phoneMatch) {
+      const digits = phoneMatch[0].replace(/[^0-9]/g, '');
+      // 010-XXXX-XXXX or 011-XXX-XXXX 정규화
+      phone = digits.length === 11
+        ? digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+        : digits.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+    }
+    // 전화번호 제거 후 번호/이름 파싱
+    const cleaned = line.replace(/01[0-9][-\s]?\d{3,4}[-\s]?\d{4}/, '').trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    const num = parts.length > 0 ? parseInt(parts[0]) : NaN;
+    const name = (parts.length > 1 ? parts[1] : '').trim();
+    return { num: isNaN(num) ? NaN : num, name, phone };
+  } catch(e) {
+    return { num: NaN, name: '', phone: '' };
+  }
+}
+
+window.previewRoster = function() {
+  const text = document.getElementById('roster-input').value.trim();
+  if (!text) { document.getElementById('roster-preview').textContent = ''; return; }
+  const lines = text.split('\n').filter(l => l.trim());
+  const parsed = lines.map(line => {
+    const { num, name, phone } = parseRosterLine(line);
+    if (isNaN(num) || !name) return null;
+    return phone ? `${num}번 ${name}(${phone})` : `${num}번 ${name}`;
+  }).filter(Boolean);
+  document.getElementById('roster-preview').textContent =
+    parsed.length ? `✓ ${parsed.length}명 인식됨: ${parsed.slice(0,3).join(', ')}${parsed.length > 3 ? ' ...' : ''}` : '인식된 데이터가 없어요';
+};
+
+window.saveRoster = async function() {
+  try {
+    const text = document.getElementById('roster-input').value.trim();
+    const lines = text.split('\n').filter(l => l.trim());
+    const obj = {};
+    const skipped = [];
+    const duplicates = [];
+    lines.forEach((line, idx) => {
+      try {
+        const { num, name, phone } = parseRosterLine(line);
+        if (!isNaN(num) && num > 0 && name) {
+          if (obj[num]) { duplicates.push(num); }
+          else { obj[num] = { name: name.trim(), phone: phone || '' }; }
+        } else {
+          if (line.trim()) skipped.push(idx + 1);
+        }
+      } catch(e) { skipped.push(idx + 1); }
+    });
+    // 중복 경고
+    if (duplicates.length > 0) {
+      const proceed = confirm(`⚠️ ${duplicates.join(', ')}번이 중복되었습니다.\n먼저 입력된 데이터만 저장됩니다. 계속할까요?`);
+      if (!proceed) return;
+    }
+    // 누락 검증 (1~최대번호 사이 빈 번호)
+    const nums = Object.keys(obj).map(Number).sort((a,b)=>a-b);
+    const maxNum = nums.length ? Math.max(...nums) : 0;
+    const missing = [];
+    for (let i = 1; i < maxNum; i++) { if (!obj[i]) missing.push(i); }
+    if (missing.length > 0 && missing.length <= 5) {
+      const proceed = confirm(`⚠️ ${missing.join(', ')}번이 누락되었습니다.\n이대로 저장할까요?`);
+      if (!proceed) return;
+    }
+    await set(dbRef(`sessions/${getSessionKey()}/roster/${rosterTab}`), obj);
+    const skipMsg = skipped.length ? `\n(${skipped.length}줄 인식 불가 — 건너뜀)` : '';
+    showToast(`${rosterTab === 'male' ? '남성' : '여성'} 명단 ${Object.keys(obj).length}명 저장 완료! ✓`);
+  } catch(e) {
+    alert('저장 중 오류가 발생했어요. 다시 시도해 주세요.');
+  }
+};
+
+// 명단 조회 헬퍼 (비동기)
+async function getRoster() {
+  const snap = await get(dbRef(`sessions/${getSessionKey()}/roster`));
+  if (!snap.exists()) return { male: {}, female: {} };
+  const d = snap.val();
+  return { male: d.male || {}, female: d.female || {} };
+}
+
+function getEntry(roster, gender, num) {
+  try {
+    const val = roster?.[gender]?.[num];
+    if (!val) return { name: '', phone: '' };
+    if (typeof val === 'object') return {
+      name: (val.name || '').trim(),
+      phone: (val.phone || '').replace(/[^0-9\-]/g, '') // 저장값 이상해도 숫자/하이픈만
+    };
+    return { name: String(val).trim(), phone: '' }; // 구버전 호환
+  } catch(e) {
+    return { name: '', phone: '' };
+  }
+}
+function getName(roster, gender, num) {
+  const { name } = getEntry(roster, gender, num);
+  return name ? `${num}번(${name})` : `${num}번`;
+}
+
+async function updateDashboard(votesData) {
+  try {
+  const snap = await get(dbRef(`sessions/${getSessionKey()}/votes`));
+  const votes = snap.exists() ? snap.val() : {};
+  const roster = await getRoster();
+
+  const mv = Object.values(votes).filter(v => v.gender === 'male').length;
+  const fv = Object.values(votes).filter(v => v.gender === 'female').length;
+  document.getElementById('stat-total').textContent = mv + fv;
+  document.getElementById('stat-male-done').textContent = mv;
+  document.getElementById('stat-female-done').textContent = fv;
+
+  // 매칭 계산
+  const matches = [];
+  for (let m = 1; m <= state.maleCount; m++) {
+    const mKey = `male_${m}`;
+    const mVote = votes[mKey]?.votes || [];
+    for (let f = 1; f <= state.femaleCount; f++) {
+      const fKey = `female_${f}`;
+      const fVote = votes[fKey]?.votes || [];
+      if (mVote.includes(f) && fVote.includes(m)) matches.push({ male: m, female: f });
+    }
+  }
+  const ml = document.getElementById('match-list');
+    ml.innerHTML = '';
+  if (matches.length === 0) {
+    ml.innerHTML = '<div class="empty-state"><div class="empty-icon">💌</div>아직 매칭 결과가 없어요</div>';
+  } else {
+    matches.forEach(({ male, female }) => {
+      const mEntry = getEntry(roster, 'male', male);
+      const fEntry = getEntry(roster, 'female', female);
+      const mLabel = mEntry.name ? `${male}번(${mEntry.name})` : `${male}번`;
+      const fLabel = fEntry.name ? `${female}번(${fEntry.name})` : `${female}번`;
+      const mPhone = (mEntry.phone || '').replace(/[^0-9\-]/g,'');
+      const fPhone = (fEntry.phone || '').replace(/[^0-9\-]/g,'');
+      const makeBtns = (phone, name, gender) => {
+        const wrap = document.createElement('span');
+        wrap.style.cssText = 'display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;';
+        if (!phone || !name) return wrap;
+        const gColor = gender === 'male' ? 'var(--male)' : 'var(--female)';
+        const gDim   = gender === 'male' ? 'var(--male-dim)' : 'var(--female-dim)';
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '\u{1F4BE} ' + phone;
+        saveBtn.style.cssText = `background:${gDim};border:1px solid ${gColor};color:${gColor};border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;`;
+        saveBtn.onclick = () => saveContact(name, phone);
+        const kakaoBtn = document.createElement('button');
+        kakaoBtn.textContent = '\u{1F49B} 카톡';
+        kakaoBtn.style.cssText = "background:#FEE500;border:1px solid #E6CE00;color:#3C1E1E;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;";
+        kakaoBtn.onclick = () => copyAndOpenKakao(phone);
+        wrap.appendChild(saveBtn);
+        wrap.appendChild(kakaoBtn);
+        return wrap;
+      };
+      const matchItem = document.createElement('div');
+      matchItem.className = 'match-item';
+      matchItem.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="match-badge male">${male}</div>
+          <div style="flex:1;">
+            <div style="font-size:10px;color:var(--gray);margin-bottom:2px;letter-spacing:1px;">MATCHED</div>
+            <div style="font-size:13px;font-family:'Noto Serif KR',serif;margin-bottom:6px;">남성 ${mLabel} ❤️ 여성 ${fLabel}</div>
+            <div class="match-btn-row" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <div class="match-badge female">${female}</div>
+        </div>`;
+      const btnRow = matchItem.querySelector('.match-btn-row');
+      btnRow.appendChild(makeBtns(mPhone, mEntry.name, 'male'));
+      btnRow.appendChild(makeBtns(fPhone, fEntry.name, 'female'));
+      ml.appendChild(matchItem);
+    });
+  }
+
+  renderVotesList('male', state.maleCount, 'female', votes, roster);
+  renderVotesList('female', state.femaleCount, 'male', votes, roster);
+  } catch(e) { console.warn('dashboard error:', e); }
+}
+
+window.resetVote = function(gender, num) {
+  const label = `${gender === 'male' ? '남성' : '여성'} ${num}번`;
+  showConfirmModal(
+    `${label} 투표 초기화`,
+    `${label}의 투표 데이터를 삭제하시겠습니까?\n복구할 수 없습니다.`,
+    async () => {
+      await remove(dbRef(`sessions/${getSessionKey()}/votes/${gender}_${num}`));
+      await remove(dbRef(`sessions/${getSessionKey()}/taken/${gender}/${num}`));
+      updateDashboard(null);
+      showToast(`${label} 초기화 완료`);
+    }
+  );
+}
+
+let _voteSort = 'num'; // 'num' | 'score'
+window.setVoteSort = function(mode) {
+  _voteSort = mode;
+  document.getElementById('sort-btn-num').classList.toggle('active', mode === 'num');
+  document.getElementById('sort-btn-score').classList.toggle('active', mode === 'score');
+  updateDashboard(null);
+}
+
+function renderVotesList(gender, count, opp, votes, roster) {
+  roster = roster || { male: {}, female: {} };
+  const oppCount = opp === 'male' ? state.maleCount : state.femaleCount;
+  const el = document.getElementById(`votes-${gender}`); el.innerHTML = '';
+
+  // 득표 계산
+  const scores = calcScores(votes, gender, count);
+
+  // 정렬 순서 결정
+  let order = Array.from({length: count}, (_, k) => k + 1);
+  if (_voteSort === 'score') order.sort((a, b) => scores[b] - scores[a]);
+
+  order.forEach(i => {
+    const key = `${gender}_${i}`;
+    const vData = votes[key];
+    const vArr = vData?.votes || null;
+    const hasVoted = vData !== undefined;
+    const isManual = vData?.manualEdit === true;
+    const myEntry = getEntry(roster, gender, i);
+    const myName = myEntry.name;
+    const myPhone = myEntry.phone;
+    const sc = scores[i];
+    const row = document.createElement('div');
+    row.className = 'vote-row' + (isManual ? ' manual-edited' : '');
+    row.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:40px;">
+        <div class="vote-row-badge" style="background:var(--${gender}-dim);border:1px solid var(--${gender});color:var(--${gender})">${i}</div>
+        ${myName ? `<div style="font-size:9px;color:var(--gray);white-space:nowrap;">${myName}</div>` : ''}
+        <div class="vote-score${sc === 0 ? ' zero' : ''}">${sc}표</div>
+        
+        ${isManual ? `<div class="manual-badge">수동수정</div>` : ''}
+      </div>
+      <div class="vote-row-targets" style="flex:1;">${hasVoted
+        ? (vData.noVote ? '<span style="font-size:11px;color:var(--gray-light);">인연없음</span>'
+          : (vArr && vArr.length > 0 ? vArr.map(v => {
+              const oppEntry = getEntry(roster, opp, v);
+              const vName = oppEntry.name ? `<div style="font-size:9px;margin-top:1px;">${oppEntry.name}</div>` : '';
+              return `<div style="display:flex;flex-direction:column;align-items:center;">
+                <div class="vote-target-badge" style="background:var(--${opp}-dim);border:1px solid var(--${opp});color:var(--${opp})">${v}</div>
+                ${vName}
+              </div>`;
+            }).join('') : '<span class="no-votes">미투표</span>'))
+        : '<span class="no-votes">미투표</span>'}</div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        <button onclick="openEditModal('${gender}',${i},${JSON.stringify(vArr||[])},${!!(vData?.noVote)},${oppCount})"
+          style="background:transparent;border:1px solid rgba(100,100,100,0.25);color:var(--gray);border-radius:6px;padding:4px 7px;font-size:13px;cursor:pointer;">✏️</button>
+        ${hasVoted ? `<button onclick="resetVote('${gender}',${i})" style="background:transparent;border:1px solid rgba(122,37,53,0.25);color:var(--wine);border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">✕</button>` : ''}
+      </div>
+    `;
+    el.appendChild(row);
+    // 💾 연락처 저장 버튼 — DOM 직접 생성 (클로저로 name/phone 캡처)
+    if (myPhone && myName) {
+      const badgeWrap = row.querySelector('.vote-row-badge')?.parentElement;
+      if (badgeWrap) {
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '💾';
+        saveBtn.title = myPhone;
+        saveBtn.style.cssText = "margin-top:2px;background:transparent;border:1px solid rgba(100,100,100,0.25);color:var(--gray);border-radius:4px;padding:1px 4px;font-size:8px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;";
+        saveBtn.onclick = () => saveContact(myName, myPhone);
+        badgeWrap.appendChild(saveBtn);
+      }
+    }
+  });
+}
+
+window.resetAll = function() {
+  showConfirmModal(
+    '이번 기수 초기화',
+    '정말로 이번 기수의 데이터를 삭제하시겠습니까?\n복구할 수 없습니다.',
+    async () => {
+      const sk = getSessionKey();
+      try {
+        // votes / taken / roster 만 삭제 (지난 기록 sessions 경로는 유지)
+        await remove(dbRef(`sessions/${sk}/votes`));
+        await remove(dbRef(`sessions/${sk}/taken`));
+        await remove(dbRef(`sessions/${sk}/roster`));
+        // voteActive 는 true 로 재설정
+        await set(dbRef(`sessions/${sk}/voteActive`), true);
+        document.getElementById('vote-toggle').checked = true;
+        document.getElementById('vote-status-text').textContent = '투표 진행 중';
+        updateDashboard(null);
+        showToast('성공적으로 초기화되었습니다 ✓');
+      } catch(e) {
+        showToast('초기화 중 오류가 발생했어요. 다시 시도해 주세요.');
+        console.error('resetAll error:', e);
+      }
+    }
+  );
+}
+
+
+// ── 수동 수정 모달 ──
+let _editState = { gender: null, num: null, selected: [], noVote: false, oppCount: 0 };
+
+window.openEditModal = function(gender, num, currentVotes, noVote, oppCount) {
+  _editState = { gender, num, selected: currentVotes ? [...currentVotes] : [], noVote: !!noVote, oppCount };
+  const opp = gender === 'male' ? 'female' : 'male';
+  const label = `${gender === 'male' ? '남성' : '여성'} ${num}번 투표 수정`;
+  document.getElementById('edit-modal-title').textContent = label;
+  // 상대 번호 그리드
+  const grid = document.getElementById('edit-vote-grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= oppCount; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'edit-vote-btn' + (_editState.selected.includes(i) ? ' selected' : '');
+    btn.textContent = i;
+    btn.onclick = () => {
+      if (_editState.noVote) return;
+      const idx = _editState.selected.indexOf(i);
+      if (idx > -1) { _editState.selected.splice(idx, 1); btn.classList.remove('selected'); }
+      else if (_editState.selected.length < 3) { _editState.selected.push(i); btn.classList.add('selected'); }
+    };
+    grid.appendChild(btn);
+  }
+  const noVoteBtn = document.getElementById('edit-no-vote-btn');
+  noVoteBtn.classList.toggle('selected', _editState.noVote);
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+window.toggleEditNoVote = function() {
+  _editState.noVote = !_editState.noVote;
+  if (_editState.noVote) {
+    _editState.selected = [];
+    document.querySelectorAll('.edit-vote-btn').forEach(b => b.classList.remove('selected'));
+  }
+  document.getElementById('edit-no-vote-btn').classList.toggle('selected', _editState.noVote);
+}
+
+window.closeEditModal = function() {
+  document.getElementById('edit-modal').classList.remove('show');
+}
+
+window.submitEditVote = async function() {
+  const { gender, num, selected, noVote } = _editState;
+  const data = noVote
+    ? { votes: [], gender, number: num, noVote: true, ts: Date.now(), manualEdit: true }
+    : { votes: selected, gender, number: num, ts: Date.now(), manualEdit: true };
+  await set(dbRef(`sessions/${getSessionKey()}/votes/${gender}_${num}`), data);
+  closeEditModal();
+  updateDashboard(null);
+  showToast(`${gender === 'male' ? '남성' : '여성'} ${num}번 수정 완료 ✓`);
+}
+
+// 확인 모달
+// 확인 모달 — window에만 저장해서 인라인 onclick에서 접근 가능하게
+window._confirmCallback = null;
+window.showConfirmModal = function(title, msg, onConfirm) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  window._confirmCallback = onConfirm;
+  document.getElementById('confirm-modal').classList.add('show');
+  setTimeout(() => document.getElementById('confirm-cancel-btn').focus(), 50);
+}
+window.closeConfirmModal = function() {
+  document.getElementById('confirm-modal').classList.remove('show');
+  window._confirmCallback = null;
+}
+window.runConfirm = function() {
+  const cb = window._confirmCallback;
+  closeConfirmModal();
+  if (cb) cb();
+}
+
+window.switchTab = function(tab) {
+  document.getElementById('tab-match').classList.toggle('active', tab === 'match');
+  document.getElementById('tab-votes').classList.toggle('active', tab === 'votes');
+  document.getElementById('tab-content-match').style.display = tab === 'match' ? '' : 'none';
+  document.getElementById('tab-content-votes').style.display = tab === 'votes' ? '' : 'none';
+}
+
+// ── 지난 기록 ──
+
+async function loadHistory() {
+  const snap = await get(dbRef('sessions'));
+  const list = document.getElementById('history-list');
+  if (!snap.exists()) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div>저장된 기록이 없어요</div>'; return; }
+  const sessions = snap.val();
+  const keys = Object.keys(sessions).sort().reverse();
+  list.innerHTML = keys.map(key => {
+    const votes = sessions[key]?.votes || {};
+    const count = Object.keys(votes).length;
+    const matches = calcMatches(votes, sessions[key]);
+    return `<div class="history-item" onclick="viewHistory('${key}')">
+      <div><div class="history-key">${key}</div><div class="history-count">투표 ${count}건 · 매칭 ${matches}쌍</div></div>
+      <div style="color:var(--gray);font-size:18px;">›</div>
+    </div>`;
+  }).join('');
+}
+
+function calcMatches(votes, session) {
+  const mc = session?.config?.maleCount || state.maleCount;
+  const fc = session?.config?.femaleCount || state.femaleCount;
+  let cnt = 0;
+  for (let m = 1; m <= mc; m++) {
+    const mV = votes[`male_${m}`]?.votes || [];
+    for (let f = 1; f <= fc; f++) {
+      if (mV.includes(f) && (votes[`female_${f}`]?.votes || []).includes(m)) cnt++;
+    }
+  }
+  return cnt;
+}
+
+let _detailSort = 'num';
+window.setDetailSort = function(mode) {
+  _detailSort = mode;
+  // 현재 상세 화면 재렌더링 — viewHistory 재호출 대신 버튼만 다시 그림
+  // 실제 재렌더를 위해 현재 키를 저장해두고 재호출
+  if (_currentDetailKey) viewHistory(_currentDetailKey);
+}
+let _currentDetailKey = null;
+
+window.viewHistory = async function(key) {
+  try {
+    _currentDetailKey = key;
+
+    // ── 1. 데이터 로드
+    const snap = await get(dbRef(`sessions/${key}`));
+    if (!snap.exists()) { showToast('데이터를 불러올 수 없어요'); return; }
+    const session = snap.val();
+    const votes  = session.votes  || {};
+    const roster = session.roster || { male: {}, female: {} };
+    const config = session.config || {};
+    const mc = config.maleCount   || state.maleCount;
+    const fc = config.femaleCount || state.femaleCount;
+
+    // ── 2. 헬퍼
+    const _name = (gender, num) => {
+      try {
+        const val = roster[gender]?.[num];
+        if (!val) return '';
+        return typeof val === 'object' ? (val.name || '') : String(val);
+      } catch(e) { return ''; }
+    };
+    const _phone = (gender, num) => {
+      try {
+        const val = roster[gender]?.[num];
+        if (!val || typeof val !== 'object') return '';
+        return (val.phone || '').replace(/[^0-9\-]/g, '');
+      } catch(e) { return ''; }
+    };
+    const _label = (gender, num) => {
+      const n = _name(gender, num);
+      return n ? `${num}번(${n})` : `${num}번`;
+    };
+
+    // ── 3. 매칭 계산
+    const matches = [];
+    for (let m = 1; m <= mc; m++) {
+      const mV = votes[`male_${m}`]?.votes || [];
+      for (let f = 1; f <= fc; f++) {
+        if (mV.includes(f) && (votes[`female_${f}`]?.votes || []).includes(m))
+          matches.push({ m, f });
+      }
+    }
+
+    // ── 4. 헤더
+    document.getElementById('detail-title').textContent = key;
+    document.getElementById('detail-summary').textContent =
+      `투표 ${Object.keys(votes).length}건 · 매칭 ${matches.length}쌍 · 남성 ${mc}명 / 여성 ${fc}명`;
+
+    // ── 5. 매칭 결과 DOM 생성
+    const detailContent = document.getElementById('detail-content');
+    detailContent.innerHTML = '';
+
+    const matchTitle = document.createElement('div');
+    matchTitle.className = 'detail-section-title';
+    matchTitle.textContent = '💑 매칭 결과';
+    detailContent.appendChild(matchTitle);
+
+    if (matches.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'detail-empty';
+      empty.textContent = '매칭된 커플이 없어요';
+      detailContent.appendChild(empty);
+    } else {
+      matches.forEach(({ m, f }, idx) => {
+        try {
+          const mName = _name('male', m);   const mPh = _phone('male', m);
+          const fName = _name('female', f); const fPh = _phone('female', f);
+
+          const makeBtns = (name, phone, gender) => {
+            const wrap = document.createElement('span');
+            wrap.style.cssText = 'display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;';
+            if (!phone || !name) return wrap;
+            const gColor = gender === 'male' ? 'var(--male)' : 'var(--female)';
+            const gDim   = gender === 'male' ? 'var(--male-dim)' : 'var(--female-dim)';
+            const sb = document.createElement('button');
+            sb.textContent = '💾 ' + phone;
+            sb.style.cssText = `background:${gDim};border:1px solid ${gColor};color:${gColor};border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;`;
+            sb.onclick = () => saveContact(name, phone);
+            const kb = document.createElement('button');
+            kb.textContent = '💛 카톡';
+            kb.style.cssText = "background:#FEE500;border:1px solid #E6CE00;color:#3C1E1E;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;";
+            kb.onclick = () => copyAndOpenKakao(phone);
+            wrap.appendChild(sb); wrap.appendChild(kb);
+            return wrap;
+          };
+
+          const dItem = document.createElement('div');
+          dItem.className = 'detail-match-item';
+          dItem.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="match-badge male">${m}</div>
+              <div style="flex:1;">
+                <div style="font-size:10px;color:var(--gray);margin-bottom:2px;letter-spacing:1px;">MATCHED</div>
+                <div style="font-size:13px;font-family:'Noto Serif KR',serif;margin-bottom:6px;">남성 ${_label('male',m)} ❤️ 여성 ${_label('female',f)}</div>
+                <div class="match-btn-row" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+              </div>
+              <div class="match-badge female">${f}</div>
+            </div>`;
+          dItem.querySelector('.match-btn-row').appendChild(makeBtns(mName, mPh, 'male'));
+          dItem.querySelector('.match-btn-row').appendChild(makeBtns(fName, fPh, 'female'));
+          detailContent.appendChild(dItem);
+        } catch(e) { console.warn('매칭항목 렌더 오류', e); }
+      });
+    }
+
+    // ── 6. 득표 계산
+    const mScores = calcScores(votes, 'male', mc);
+    const fScores = calcScores(votes, 'female', fc);
+
+    // ── 7. 정렬 토글
+    const sortDiv = document.createElement('div');
+    sortDiv.className = 'sort-toggle';
+    sortDiv.style.marginBottom = '6px';
+    sortDiv.innerHTML = `
+      <button class="sort-btn${_detailSort==='num'?' active':''}" onclick="setDetailSort('num')">번호순</button>
+      <button class="sort-btn${_detailSort==='score'?' active':''}" onclick="setDetailSort('score')">득표순</button>`;
+    detailContent.appendChild(sortDiv);
+
+    // ── 8. 투표 현황 렌더
+    const renderDetailVotes = (gender, count, oppGender, scores) => {
+      const secTitle = document.createElement('div');
+      secTitle.className = 'detail-section-title';
+      secTitle.textContent = gender === 'male' ? '👔 남성 투표 현황' : '👗 여성 투표 현황';
+      detailContent.appendChild(secTitle);
+
+      let order = Array.from({length: count}, (_, k) => k + 1);
+      if (_detailSort === 'score') order.sort((a, b) => scores[b] - scores[a]);
+
+      order.forEach(num => {
+        try {
+          const vData = votes[`${gender}_${num}`];
+          const sc = scores[num] || 0;
+          const isManual = vData?.manualEdit;
+          let voteStr = '<span style="color:var(--gray);font-size:12px;">미투표</span>';
+          if (vData) {
+            if (vData.noVote) voteStr = '<span style="font-size:12px;color:var(--gray);">인연없음</span>';
+            else if (Array.isArray(vData.votes) && vData.votes.length > 0)
+              voteStr = vData.votes.map(v => {
+                const n = _name(oppGender, v);
+                const dimC = oppGender === 'female' ? 'var(--female-dim)' : 'var(--male-dim)';
+                const bC   = oppGender === 'female' ? 'var(--female)' : 'var(--male)';
+                return `<span style="background:${dimC};border:1px solid ${bC};color:${bC};border-radius:20px;padding:2px 8px;font-size:11px;margin-right:4px;">${v}${n?`(${n})`:''}</span>`;
+              }).join('');
+          }
+          const row = document.createElement('div');
+          row.className = 'detail-vote-row';
+          if (isManual) row.style.cssText = 'border-left:3px solid #f0a500;background:rgba(255,200,50,0.07);';
+          row.innerHTML = `
+            <div style="min-width:68px;font-size:12px;color:var(--charcoal);">
+              ${_label(gender, num)}${isManual?' <span style="font-size:9px;color:#b07800;">수동</span>':''}
+              <span style="display:inline-block;font-size:9px;color:white;background:${sc>0?'var(--wine)':'var(--gray)'};border-radius:10px;padding:1px 5px;margin-left:3px;font-weight:600;">${sc}표</span>
+            </div>
+            <div style="flex:1;">${voteStr}</div>`;
+          detailContent.appendChild(row);
+        } catch(e) { console.warn('투표현황 행 오류', e); }
+      });
+    };
+
+    renderDetailVotes('male', mc, 'female', mScores);
+    renderDetailVotes('female', fc, 'male', fScores);
+
+    goTo('screen-history-detail');
+  } catch(e) {
+    console.error('viewHistory 오류:', e);
+    showToast('기록을 불러오는 중 오류가 발생했어요');
+  }
+}
+
+
+// 시작
+init();
+</script>
+
+<div id="copy-toast"></div>
+<script>
+window.copyAndOpenKakao = function(phone) {
+  if (!phone) return;
+  // 1. 클립보드 복사
+  navigator.clipboard.writeText(phone).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = phone; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  showToast(phone + ' 복사됨 — 카톡 열립니다 💛');
+  // 2. iOS Safari에서 가장 안정적인 방식: location.href로 직접 스킴 실행
+  setTimeout(() => {
+    window.location.href = 'kakaotalk://';
+  }, 400);
+};
+
+window.saveContact = function(name, phone) {
+  if (!phone) { showToast('전화번호가 없어요'); return; }
+  const displayName = `모직소 ${name}`;
+  const vcf = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${displayName}`,
+    `N:${name};;;모직소;`,
+    `TEL;TYPE=CELL:${phone}`,
+    'END:VCARD'
+  ].join('\r\n');
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `${displayName}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(`${displayName} 연락처 저장 중...`);
+};
+
+window.copyPhone = function(phone, label) {
+  if (!phone) { showToast('전화번호가 없어요'); return; }
+  navigator.clipboard.writeText(phone).then(() => {
+    showToast(phone + ' 복사됨 ✓');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = phone; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast(phone + ' 복사됨 ✓');
+  });
+};
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('copy-toast');
+  t.textContent = msg; t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+
+<!-- 확인 모달 -->
+<div id="confirm-modal">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">확인</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-btn-cancel" id="confirm-cancel-btn" onclick="closeConfirmModal()">아니오, 유지합니다</button>
+      <button class="confirm-btn-danger" id="confirm-ok-btn" onclick="runConfirm()">네, 삭제하겠습니다</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 팝업 -->
+<div id="edit-modal">
+  <div class="edit-box">
+    <div class="edit-box-title" id="edit-modal-title">투표 수정</div>
+    <div id="edit-vote-grid" class="edit-vote-grid"></div>
+    <button class="edit-no-vote" id="edit-no-vote-btn" onclick="toggleEditNoVote()">인연없음 (투표 안 함)</button>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeEditModal()" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:#f5f5f5;color:var(--gray);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">취소</button>
+      <button onclick="submitEditVote()" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--wine);color:#fff;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:600;">저장</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
