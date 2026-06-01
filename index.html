@@ -1905,6 +1905,42 @@ window.viewHistory = async function(key) {
     renderDetailVotes('male', mc, 'female', mScores);
     renderDetailVotes('female', fc, 'male', fScores);
 
+    // ── 인스타 텍스트 추출 버튼
+    const exportWrap = document.createElement('div');
+    exportWrap.style.cssText = 'margin-top:16px;';
+    exportWrap.innerHTML = `
+      <div class="card">
+        <div class="card-title">📋 인스타 텍스트 추출</div>
+        <div id="export-text-box" style="background:var(--ivory);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--charcoal);line-height:2.2;font-family:monospace;white-space:pre-wrap;word-break:break-all;margin-bottom:10px;"></div>
+        <button onclick="copyExportText()" style="width:100%;padding:10px;background:white;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--charcoal);cursor:pointer;font-family:'Noto Sans KR',sans-serif;" id="export-copy-btn">복사하기</button>
+      </div>`;
+    detailContent.appendChild(exportWrap);
+
+    // 텍스트 생성
+    const matchedMales = matches.map(({m}) => {
+      const v = roster['male']?.[m];
+      const age = typeof v === 'object' ? (v.age || '') : '';
+      const job = typeof v === 'object' ? (v.job || '') : '';
+      return `${age} ${job}`.trim() || `${m}번`;
+    });
+    const matchedFemales = matches.map(({f}) => {
+      const v = roster['female']?.[f];
+      const age = typeof v === 'object' ? (v.age || '') : '';
+      const job = typeof v === 'object' ? (v.job || '') : '';
+      return `${age} ${job}`.trim() || `${f}번`;
+    });
+
+    const exportText = `총 ${matches.length}커플
+
+남자
+${matchedMales.join('
+')}
+
+여자
+${matchedFemales.join('
+')}`;
+    document.getElementById('export-text-box').textContent = exportText;
+
     goTo('screen-history-detail');
   } catch(e) {
     console.error('viewHistory 오류:', e);
@@ -1912,6 +1948,15 @@ window.viewHistory = async function(key) {
   }
 }
 
+
+window.copyExportText = function() {
+  const text = document.getElementById('export-text-box').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('export-copy-btn');
+    btn.textContent = '복사됨 ✓';
+    setTimeout(() => btn.textContent = '복사하기', 2000);
+  });
+}
 
 // 시작
 init();
