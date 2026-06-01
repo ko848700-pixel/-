@@ -1930,15 +1930,8 @@ window.viewHistory = async function(key) {
       return `${age} ${job}`.trim() || `${f}번`;
     });
 
-    const exportText = `총 ${matches.length}커플
-
-남자
-${matchedMales.join('
-')}
-
-여자
-${matchedFemales.join('
-')}`;
+    const exportLines = ['총 ' + matches.length + '커플', '', '남자', ...matchedMales, '', '여자', ...matchedFemales];
+    const exportText = exportLines.join('\n');
     document.getElementById('export-text-box').textContent = exportText;
 
     goTo('screen-history-detail');
