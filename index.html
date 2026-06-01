@@ -501,6 +501,15 @@ body { background:var(--ivory); color:var(--charcoal); font-family:'Noto Sans KR
   </div>
 
 
+
+  <!-- 음료 분류 -->
+  <div class="card" id="drink-section" style="display:none;">
+    <div class="card-title">음료 분류</div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:12px;" id="drink-summary"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="drink-tabs"></div>
+    <div id="drink-content"></div>
+  </div>
+
   <!-- 득표 공개 시간 설정 -->
   <div class="card">
     <div class="card-title">득표 공개 시간 설정</div>
@@ -1042,6 +1051,105 @@ window.saveScoreRevealTime = async function() {
 }
 
 
+
+// ── 음료 분류 ──
+function parseDrink(s) {
+  if (!s) return null;
+  s = s.trim();
+  if (s === '하' || s === '하이볼') return '하이볼';
+  if (s === '와' || s === '와인') return '와인';
+  if (s === '탄' || s === '탄산수') return '탄산수';
+  if (s === '티' || s === '아이스티') return '아이스티';
+  if (s === '아아') return '아아';
+  if (s === '물') return '물';
+  return null;
+}
+
+function buildDrinkSection(roster) {
+  const DRINKS = ['하이볼','와인','아아','탄산수','아이스티','물'];
+  const EMOJI  = {'하이볼':'🥃','와인':'🍷','아아':'☕','탄산수':'🫧','아이스티':'🍵','물':'💧'};
+  const groups = {};
+  DRINKS.forEach(d => groups[d] = []);
+  const unset = [];
+
+  ['male','female'].forEach(g => {
+    const lbl = g === 'male' ? '남' : '여';
+    const r = roster[g] || {};
+    Object.entries(r).forEach(([num, v]) => {
+      const raw = typeof v === 'object' ? [v.name,v.age,v.job,v.drink].filter(Boolean).join(' ') : String(v).trim();
+      const parts = raw.trim().split(/\s+/);
+      const last = parts[parts.length-1];
+      const drink = parseDrink(last);
+      const name = parts[0]||'';
+      const age  = parts[1]||'';
+      const job  = parts[2]||'';
+      const entry = `${lbl}${num} ${name} ${age} ${job}`.trim();
+      if (drink) groups[drink].push(entry);
+      else unset.push(entry);
+    });
+  });
+
+  const total = Object.values(groups).reduce((s,a)=>s+a.length,0);
+  const section = document.getElementById('drink-section');
+  if (!section) return;
+  if (total===0 && unset.length===0) { section.style.display='none'; return; }
+  section.style.display='block';
+
+  const activeDrinks = DRINKS.filter(d=>groups[d].length>0);
+  if (unset.length) activeDrinks.push('미입력');
+
+  const summaryParts = activeDrinks.map(d=>d==='미입력'?`미입력 ${unset.length}명`:`${d} ${groups[d].length}명`);
+  document.getElementById('drink-summary').textContent = `총 ${total}명 · `+summaryParts.join(' · ');
+
+  const tabsEl = document.getElementById('drink-tabs');
+  const contentEl = document.getElementById('drink-content');
+  tabsEl.innerHTML = '';
+  contentEl.innerHTML = '';
+
+  function showDrinkTab(name) {
+    activeDrinks.forEach(d => {
+      const btn = document.getElementById('dtab-'+d);
+      const con = document.getElementById('dcont-'+d);
+      if (btn) { btn.style.background=d===name?'var(--wine)':'white'; btn.style.color=d===name?'white':'var(--charcoal)'; btn.style.borderColor=d===name?'var(--wine)':'var(--border)'; }
+      if (con) con.style.display=d===name?'block':'none';
+    });
+  }
+
+  activeDrinks.forEach(d => {
+    const btn = document.createElement('button');
+    btn.id='dtab-'+d;
+    const cnt = d==='미입력'?unset.length:groups[d].length;
+    btn.textContent=(EMOJI[d]||'')+' '+d+' '+cnt;
+    btn.style.cssText='padding:5px 12px;border-radius:20px;border:1px solid var(--border);font-size:11px;background:white;color:var(--charcoal);cursor:pointer;font-family:"Noto Sans KR",sans-serif;margin-bottom:4px;';
+    btn.onclick=()=>showDrinkTab(d);
+    tabsEl.appendChild(btn);
+
+    const div=document.createElement('div');
+    div.id='dcont-'+d;
+    div.style.display='none';
+    const list=d==='미입력'?unset:groups[d];
+    let listHtml = '';
+    if (list.length === 0) {
+      listHtml = '없음';
+    } else {
+      list.forEach((item, i) => {
+        listHtml += item;
+        if (i < list.length - 1) {
+          if ((i + 1) % 2 === 0) {
+            listHtml += `<div style="height:1px;background:var(--border);margin:6px 0;"></div>`;
+          } else {
+            listHtml += '<br>';
+          }
+        }
+      });
+    }
+    div.innerHTML=`<div style="background:var(--ivory);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--gray);line-height:2.2;">${listHtml}</div>`;
+    contentEl.appendChild(div);
+  });
+
+  if (activeDrinks.length>0) showDrinkTab(activeDrinks[0]);
+}
+
 // ── 코드 인증 & 재진입 수정 ──
 window.submitVerify = async function() {
   const inputCode = document.getElementById('verify-code-input').value.trim().toUpperCase();
@@ -1213,6 +1321,9 @@ window.refreshDashboard = async function() {
   const active = activeSnap.exists() ? activeSnap.val() : true;
   document.getElementById('vote-toggle').checked = active;
   document.getElementById('vote-status-text').textContent = active ? '투표 진행 중' : '투표 마감됨';
+  // 음료 분류
+  const rSnap = await get(dbRef(`sessions/${getSessionKey()}/roster`));
+  if (rSnap.exists()) buildDrinkSection(rSnap.val());
   // 실시간 투표 현황
   onValue(dbRef(`sessions/${getSessionKey()}/votes`), (snap) => {
     const votes = snap.exists() ? snap.val() : {};
@@ -1287,25 +1398,30 @@ window.switchRosterTab = function(gender) {
 
 function parseRosterLine(line) {
   try {
-    if (!line || !line.trim()) return { num: NaN, name: '', phone: '' };
-    // 전화번호 추출 — 010으로 시작하는 숫자 덩어리 (하이픈/공백 무관)
+    if (!line || !line.trim()) return { num: NaN, name: '', phone: '', age: '', job: '', drink: '' };
+    const DRINK_WORDS = ['하','하이볼','와','와인','탄','탄산수','티','아이스티','아아','물'];
     const phoneMatch = line.match(/01[0-9][-\s]?\d{3,4}[-\s]?\d{4}/);
     let phone = '';
     if (phoneMatch) {
       const digits = phoneMatch[0].replace(/[^0-9]/g, '');
-      // 010-XXXX-XXXX or 011-XXX-XXXX 정규화
       phone = digits.length === 11
         ? digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
         : digits.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
     }
-    // 전화번호 제거 후 번호/이름 파싱
     const cleaned = line.replace(/01[0-9][-\s]?\d{3,4}[-\s]?\d{4}/, '').trim();
     const parts = cleaned.split(/\s+/).filter(Boolean);
-    const num = parts.length > 0 ? parseInt(parts[0]) : NaN;
+    const num  = parts.length > 0 ? parseInt(parts[0]) : NaN;
     const name = (parts.length > 1 ? parts[1] : '').trim();
-    return { num: isNaN(num) ? NaN : num, name, phone };
+    const age  = (parts.length > 2 ? parts[2] : '').trim();
+    // 마지막 토큰이 음료 단어면 drink로, 아니면 직업의 일부로
+    const lastToken = parts[parts.length - 1] || '';
+    const isDrink = DRINK_WORDS.includes(lastToken.trim());
+    const jobParts = parts.slice(3, isDrink ? parts.length - 1 : parts.length);
+    const job = jobParts.join(' ').trim();
+    const drink = isDrink ? lastToken.trim() : '';
+    return { num: isNaN(num) ? NaN : num, name, phone, age, job, drink };
   } catch(e) {
-    return { num: NaN, name: '', phone: '' };
+    return { num: NaN, name: '', phone: '', age: '', job: '', drink: '' };
   }
 }
 
@@ -1331,10 +1447,10 @@ window.saveRoster = async function() {
     const duplicates = [];
     lines.forEach((line, idx) => {
       try {
-        const { num, name, phone } = parseRosterLine(line);
+        const { num, name, phone, age, job, drink } = parseRosterLine(line);
         if (!isNaN(num) && num > 0 && name) {
           if (obj[num]) { duplicates.push(num); }
-          else { obj[num] = { name: name.trim(), phone: phone || '' }; }
+          else { obj[num] = { name: name.trim(), phone: phone || '', age: age||'', job: job||'', drink: drink||'' }; }
         } else {
           if (line.trim()) skipped.push(idx + 1);
         }
@@ -1357,6 +1473,9 @@ window.saveRoster = async function() {
     await set(dbRef(`sessions/${getSessionKey()}/roster/${rosterTab}`), obj);
     const skipMsg = skipped.length ? `\n(${skipped.length}줄 인식 불가 — 건너뜀)` : '';
     showToast(`${rosterTab === 'male' ? '남성' : '여성'} 명단 ${Object.keys(obj).length}명 저장 완료! ✓`);
+    // 음료 분류 업데이트
+    const rosterSnap = await get(dbRef(`sessions/${getSessionKey()}/roster`));
+    if (rosterSnap.exists()) buildDrinkSection(rosterSnap.val());
   } catch(e) {
     alert('저장 중 오류가 발생했어요. 다시 시도해 주세요.');
   }
